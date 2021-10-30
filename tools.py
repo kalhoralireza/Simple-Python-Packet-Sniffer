@@ -3,11 +3,15 @@ import binascii
 import socket
 
 def ethernetFrame(raw_data):
+    """
+    extract Ethernet frame header from raw packet.
+    """
     ethernet_header = raw_data[0:14]
     eth_header = struct.unpack('!6s6s2s', ethernet_header)
     dst_mac = getMAC(str(binascii.hexlify(eth_header[0])))
     src_mac = getMAC(str(binascii.hexlify(eth_header[1])))
     packet_type = binascii.hexlify(eth_header[2])
+    # ckeck for packet type, full list availavle here -> https://en.wikipedia.org/wiki/EtherType#Values
     if packet_type == b'0800':
         protocol = 'IPV4'
     elif packet_type == b'0806':
@@ -18,14 +22,21 @@ def ethernetFrame(raw_data):
         protocol = 'IPV6'
     else:
         protocol = 'UNKNOWN'
-    
+    # return results with rest of the raw packet
     return(dst_mac, src_mac, protocol,raw_data[14:])
 
 def getMAC(mac):
+    """
+    it will simply turn aabbccddeeff to aa:bb:cc:dd:ee:ff
+    """
     s = iter(mac)
     return(':'.join(a+b for a, b in zip(s, s)))
 
 def ipHeader(raw_data):
+    """
+    parse the ip header from raw packet, we don't need tos, id, offset, sum. you can remove them.
+    """
+    # '<' is mean storing bytes in little-enidan
     header = struct.unpack('<BBHHHBBH4s4s', raw_data)
     ver = header[0] >> 4
     ihl = (header[0] & 0xF) * 4    # Header Length
@@ -50,6 +61,10 @@ def ipHeader(raw_data):
     return(ihl, len, ttl, protocol, src_address, dst_address)
 
 def ICMP(raw_data):
+    """
+    Just simply parse ICMP header and return type of ICMP.
+    for more understanding take a look at ICMP datagram.
+    """
     header = struct.unpack('<BBHHH', raw_data)
     type = header[0]
     code = header[1]
@@ -67,6 +82,10 @@ def ICMP(raw_data):
     return(icmpType, code, id, seq)
 
 def tcpHeader(buffer):
+    """
+    This function is from: https://github.com/O-Luhishi/Python-Packet-Sniffer/blob/f855159c8ceed28191e78b42c58122f5c0bf0d10/Packet-Sniffer.py#L109
+    for more understanding take a look at TCP header datagram.
+    """
     # 2 unsigned short,2unsigned Int,4 unsigned short. 2byt+2byt+4byt+4byt+2byt+2byt+2byt+2byt==20byts
     packet = struct.unpack("!2H2I4H", buffer[0:20])
     srcPort = packet[0]
@@ -85,7 +104,7 @@ def tcpHeader(buffer):
     window = packet[5]
     checkSum = packet[6]
     urgPntr = packet[7]
-    # For more print and show
+    # For more print and show, you can uncoment them.
     # if(urgFlag == 32):
     #     print ("\tUrgent Flag: Set")
     # if(ackFlag == 16):
@@ -108,6 +127,10 @@ def tcpHeader(buffer):
     return(srcPort, dstPort, sqncNum, acknNum, packet)
 
 def udpHeader(newPacket):
+    """
+    this function is from: https://github.com/O-Luhishi/Python-Packet-Sniffer/blob/f855159c8ceed28191e78b42c58122f5c0bf0d10/Packet-Sniffer.py#L160
+    for more understanding take a look at UDP header datagram.
+    """
     packet = struct.unpack("!4H", newPacket[0:8])
     srcPort = packet[0]
     dstPort = packet[1]
