@@ -1,10 +1,14 @@
 from tools import *
 
 def printIPV4(raw_data):
+    """
+    For printing IPV4 packets.
+    """
     offset, len, ttl, protocol, src_ip, dst_ip = ipHeader(raw_data[0:20])
-
-    if protocol == 'ICMP':
-        newdata = raw_data[offset:offset + 8]
+    
+    # Ckeck for protocols and pass the raw packets to their function.
+    if protocol == 'ICMP': 
+        newdata = raw_data[offset:offset + 8] # offset is (ihl * 4), it's ip headers length. we want the rest
         icmpType, code, id, seq = ICMP(newdata)
         text = f"Protocol: ICMP\nType: {icmpType}\nCode: {code}\nID: {id}\nSeq: {seq}"
     elif protocol == 'TCP':
@@ -27,7 +31,7 @@ if __name__ == '__main__':
     sock = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
     while True:
         # read a packet
-        raw_buffer = sock.recvfrom(65535)[0]
-        dest_mac, src_mac, protocol, data = ethernetFrame(raw_buffer)
-        if protocol == 'IPV4':
+        raw_buffer = sock.recvfrom(65535)[0] # max size of a packet is 65535
+        dest_mac, src_mac, protocol, data = ethernetFrame(raw_buffer) # parse the ethernet header
+        if protocol == 'IPV4': # check for that if we're receiving IPV4, you can add IPV6 if you want to :)
             printIPV4(data)
